@@ -57,9 +57,16 @@ func (h *Harvester) Harvest(output chan *FileEvent) {
         // Check to see if the file was truncated
         info, _ := h.file.Stat()
         if info.Size() < h.Offset {
-          log.Printf("File truncated, seeking to beginning: %s\n", h.Path)
-          h.file.Seek(0, os.SEEK_SET)
-          h.Offset = 0
+
+          if h.FileConfig.Fields["onEOF"] == "exit" {
+            log.Printf("File truncated, logstash-forwarder will quit...")
+            os.Exit(0)
+          } else { 
+            log.Printf("File truncated, seeking to beginning: %s\n", h.Path)
+            h.file.Seek(0, os.SEEK_SET)
+            h.Offset = 0
+          }
+
         } else if age := time.Since(last_read_time); age > h.FileConfig.deadtime {
           // if last_read_time was more than dead time, this file is probably
           // dead. Stop watching it.
